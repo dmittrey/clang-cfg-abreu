@@ -77,9 +77,10 @@ public:
     int NewFieldsCnt() const { return NewFields.size(); }
 
     int DerivedCnt() const { 
-        // std::cout << Record_->getNameAsString() << std::endl;
-        // std::cout << "Derived count: " << DerivedCount[Record_] << std::endl;
-        return DerivedCount[Record_]; }
+        std::cout << Record_->getNameAsString() << std::endl;
+        std::cout << "Derived count: " << DerivedCount[Record_] << std::endl;
+        return DerivedCount[Record_]; 
+    }
 
 private:
     void traverseBaseClasses(const clang::CXXRecordDecl *CXXRD) {
@@ -134,9 +135,6 @@ public:
             Fields.insert(Field);
         }
 
-        std::cout << "Self Methods Count: " << Methods.size() << std::endl;
-        std::cout << "Self Fields Count: " << Fields.size() << std::endl;
-
         for (clang::CXXMethodDecl* Meth : Methods) {
             bool found = false;
             for (clang::CXXMethodDecl* InheritedMeth : InheritedMethods) {
@@ -162,6 +160,9 @@ public:
             if (!found)
                 NewFields.insert(Field);
         }
+
+        std::cout << "Override Methods Count: " << OverrideMethods.size() << std::endl;
+        std::cout << "Override Fields Count: " << OverrideFields.size() << std::endl;
 
         for (clang::CXXMethodDecl* Meth : NewMethods) {
             if (Meth->getAccess() == clang::AccessSpecifier::AS_public)
