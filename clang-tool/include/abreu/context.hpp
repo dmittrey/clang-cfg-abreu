@@ -72,16 +72,17 @@ private:
     }
 
     double CouplingFactor() const {
-        double N = 0;
+        double N = Classes.size();
         double Cij = 0;
 
         for (auto* Class : Classes) {
             if (int RefCnt = Class->ReferenceCnt()) {
-                N += 1;
                 Cij += RefCnt;
             }
         }
 
+        if (N == 0) 
+            return 0;
         return Cij / (N * (N - 1));
     }
 
