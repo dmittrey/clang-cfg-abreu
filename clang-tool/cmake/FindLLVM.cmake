@@ -13,9 +13,9 @@
 # LLVM_LIBS_JIT : ldflags needed to link against a LLVM JIT
 # LLVM_LIBS_JIT_OBJECTS : objects you need to add to your source when using LLVM JIT
 
-set(LLVM_BIN_DIR "/Users/z.dmitriy/cfg-prog-util/llvm-project/build/install/bin")
-set(LLVM_LIB_DIR "/Users/z.dmitriy/cfg-prog-util/llvm-project/build/install/lib")
-set(LLVM_INCLUDE_DIR "/Users/z.dmitriy/cfg-prog-util/llvm-project/build/install/include")
+set(LLVM_BIN_DIR "../../llvm-project/build/install/bin")
+set(LLVM_LIB_DIR "../../llvm-project/build/install/lib")
+set(LLVM_INCLUDE_DIR "../../llvm-project/build/install/include")
 
 if (LLVM_INCLUDE_DIR)
   set(LLVM_FOUND TRUE)
