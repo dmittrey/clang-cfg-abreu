@@ -13,6 +13,10 @@ private:
     void example_method_private () {}
 
 public:
+    void setAttr(int attr) {}
+    int getAttr() {}
+
+public:
     int example_field;
 
 private:
