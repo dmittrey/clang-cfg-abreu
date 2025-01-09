@@ -11,17 +11,17 @@ using namespace clang;
 std::unordered_map<clang::CXXRecordDecl *, int> DerivedCount = {};
 
 bool AreMethodSignaturesEqual(const CXXMethodDecl *Method1, const CXXMethodDecl *Method2) {
-    // Проверка: имена методов
+    // Method names
     if (Method1->getNameAsString() != Method2->getNameAsString()) {
         return false;
     }
 
-    // Проверка: количество параметров
+    // Params count
     if (Method1->getNumParams() != Method2->getNumParams()) {
         return false;
     }
 
-    // Проверка: параметры по их типам
+    // Param types
     for (unsigned i = 0; i < Method1->getNumParams(); ++i) {
         QualType ParamType1 = Method1->getParamDecl(i)->getType().getCanonicalType();
         QualType ParamType2 = Method2->getParamDecl(i)->getType().getCanonicalType();
@@ -30,12 +30,11 @@ bool AreMethodSignaturesEqual(const CXXMethodDecl *Method1, const CXXMethodDecl 
         }
     }
 
-    // Проверка: CV-квалификаторы (const, volatile)
+    // CV-qual
     if (Method1->getType().getLocalCVRQualifiers() != Method2->getType().getLocalCVRQualifiers()) {
         return false;
     }
 
-    // Если все проверки пройдены
     return true;
 }
 
