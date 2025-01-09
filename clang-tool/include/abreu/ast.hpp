@@ -9,6 +9,7 @@ namespace ast {
 using namespace clang;
 
 std::unordered_map<clang::CXXRecordDecl *, int> DerivedCount = {};
+std::unordered_map<clang::RecordDecl *, int> ReferenceCount = {};
 
 bool AreMethodSignaturesEqual(const CXXMethodDecl *Method1, const CXXMethodDecl *Method2) {
     // Method names
@@ -80,6 +81,11 @@ public:
         std::cout << "Derived count: " << DerivedCount[Record_] << std::endl;
         return DerivedCount[Record_]; 
     }
+    int ReferenceCnt() const {
+        std::cout << Record_->getNameAsString() << std::endl;
+        std::cout << "Reference count: " << ReferenceCount[Record_] << std::endl;
+        return ReferenceCount[Record_];
+    }
 
 private:
     void traverseBaseClasses(const clang::CXXRecordDecl *CXXRD) {
@@ -120,6 +126,35 @@ public:
         std::cout << "Name: " << Record->getNameAsString() << std::endl;
 
         traverseBaseClasses(Record);
+
+        for (clang::FieldDecl* Field : Record->fields()) {
+            std::cout << Field->getNameAsString();
+            clang::QualType type = Field->getType();
+
+            // Проверяем, является ли это поле указателем на структуру
+            if (type->isPointerType()) {
+                const clang::QualType pointeeType = type->getPointeeType(); // Достаем тип, на который указывает поле
+
+                if (const clang::RecordType *RefRecord = pointeeType->getAs<clang::RecordType>()) {
+                    std::cout << " IS POINTER TO RECORD" << std::endl;
+
+                    auto *ReferencedDecl = RefRecord->getDecl();
+                    if (ReferencedDecl->getNameAsString() != Record->getNameAsString()) {
+                        ReferenceCount[Record]++;
+                    }
+                }
+            } else if (const clang::RecordType *RefRecord = type->getAs<clang::RecordType>()) {
+                std::cout << " IS RECORD" << std::endl;
+
+                auto *ReferencedDecl = RefRecord->getDecl();
+                if (ReferencedDecl->getNameAsString() != Record->getNameAsString()) {
+                    ReferenceCount[Record]++;
+                }
+            }
+
+            std::cout << std::endl; // Завершаем строку вывода
+        }
+
 
         std::cout << "Inherited Methods Count: " << InheritedMethods.size() << std::endl;
         std::cout << "Inherited Fields Count: " << InheritedFields.size() << std::endl;

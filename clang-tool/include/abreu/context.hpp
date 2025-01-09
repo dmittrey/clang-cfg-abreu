@@ -71,6 +71,20 @@ private:
         return Overriden / All;
     }
 
+    double CouplingFactor() const {
+        double N = 0;
+        double Cij = 0;
+
+        for (auto* Class : Classes) {
+            if (int RefCnt = Class->ReferenceCnt()) {
+                N += 1;
+                Cij += RefCnt;
+            }
+        }
+
+        return Cij / (N * (N - 1));
+    }
+
 public:
     void Push(ast::Class* NewClass) {
         Classes.push_back(NewClass);
@@ -83,6 +97,7 @@ public:
         std::cout << "Method Inheritance Factor: " << MethodInheritanceFactor() << std::endl;
         std::cout << "Attribute Inheritance Factor: " << AttributeInheritanceFactor() << std::endl;
         std::cout << "Polymorphism Factor: " << PolymorphismFactor() << std::endl;
+        std::cout << "Coupling Factor: " << CouplingFactor() << std::endl;
     }
 };
 
