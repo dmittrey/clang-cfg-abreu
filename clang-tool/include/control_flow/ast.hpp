@@ -365,6 +365,7 @@ public:
     graphiz::Condition* CondFlow;
     graphiz::Statement* IncFlow;
 
+private:
     Node* Body = nullptr;
 
 private:
