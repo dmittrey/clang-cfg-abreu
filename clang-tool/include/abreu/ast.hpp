@@ -2,6 +2,8 @@
 
 #include <unordered_set>
 
+#include "attribute.hpp"
+
 namespace abreu {
 
 namespace ast {
@@ -39,42 +41,97 @@ bool AreMethodSignaturesEqual(const CXXMethodDecl *Method1, const CXXMethodDecl 
     return true;
 }
 
+void FillAttributesAndMethods(clang::CXXRecordDecl* Record, std::vector<clang::CXXMethodDecl*>& Methods, std::vector<Attribute>& Attributes) {
+    std::vector<std::string> Result;
+    std::unordered_map<std::string, clang::CXXMethodDecl*> Getters;
+
+    for (clang::CXXMethodDecl* Meth : Record->methods()) {
+        std::string MethName = Meth->getNameAsString();
+
+        if (MethName.find("get") == 0 && Meth->getNumParams() == 0) {
+            std::cout << "Found get: " << Meth->getNameAsString() << std::endl;
+            std::string PropertyName = MethName.substr(3);
+            Getters[PropertyName] = Meth;
+        }
+    }
+
+    // std::cout << "Num getters: " << Getters.size() << std::endl;
+
+    for (clang::CXXMethodDecl* Meth : Record->methods()) {
+        std::string MethName = Meth->getNameAsString();
+
+        if (MethName.find("get") == 0 && Meth->getNumParams() == 0)
+            continue;
+        if (MethName.find("set") == 0 && Meth->getNumParams() == 1) {
+            std::string PropertyName = MethName.substr(3);
+
+            if (Getters.count(PropertyName)) {
+                // Если access spec одинаковый и есть get/set
+                if (Getters[PropertyName]->getAccess() == Meth->getAccess())
+                    Attributes.push_back({PropertyName, Meth->getAccess()});
+
+                // Если access spec не сошлись, то беру по самому строгому
+                else
+                    Attributes.push_back({PropertyName, std::max(Getters[PropertyName]->getAccess(), Meth->getAccess())});
+                Getters.erase(PropertyName);
+            } 
+            else {
+                Methods.push_back(Meth);
+            }
+        } else {
+            if (!Meth->isImplicit())
+                Methods.push_back(Meth);
+        }
+    }
+
+    // std::cout << "Num getters: " << Getters.size() << std::endl;
+    // std::cout << "Num Attributes: " << Attributes.size() << std::endl;
+    // std::cout << "Num Methods: " << Methods.size() << std::endl;
+
+    // for (const auto pair : Methods)
+        // std::cout << "Mathod: " << pair->getNameAsString() << std::endl;
+
+    // Не нашедшие пару, туда же
+    for (const auto& pair : Getters)
+        Methods.push_back(pair.second);
+}
+
 struct Class {
 private:
     clang::CXXRecordDecl* Record_ = nullptr;
 
     std::unordered_set<clang::CXXMethodDecl*> InheritedMethods = {};
-    std::unordered_set<clang::FieldDecl*> InheritedFields = {};
+    std::unordered_set<Attribute> InheritedAttributes = {};
 
-    std::unordered_set<clang::CXXMethodDecl*> Methods = {};
-    std::unordered_set<clang::FieldDecl*> Fields = {};
+    std::vector<clang::CXXMethodDecl*> Methods = {};
+    std::vector<Attribute> Attributes = {};
 
     std::unordered_set<clang::CXXMethodDecl*> OverrideMethods = {};
-    std::unordered_set<clang::FieldDecl*> OverrideFields = {};
+    std::unordered_set<Attribute> OverrideAttributes = {};
 
     std::unordered_set<clang::CXXMethodDecl*> NewMethods = {};
-    std::unordered_set<clang::FieldDecl*> NewFields = {};
+    std::unordered_set<Attribute> NewAttributes = {};
 
     std::unordered_set<clang::CXXMethodDecl*> NewVisibleMethods = {};
     std::unordered_set<clang::CXXMethodDecl*> NewHiddenMethods = {};
 
-    std::unordered_set<clang::FieldDecl*> NewVisibleFields = {};
-    std::unordered_set<clang::FieldDecl*> NewHiddenFields = {};
+    std::unordered_set<Attribute> NewVisibleAttributes = {};
+    std::unordered_set<Attribute> NewHiddenAttributes = {};
 
 public:
     int NewVisibleMethodsCnt() const { return NewVisibleMethods.size(); }
     int NewHiddenMethodsCnt() const { return NewHiddenMethods.size(); }
 
-    int NewVisibleFieldsCnt() const { return NewVisibleFields.size(); }
-    int NewHiddenFieldsCnt() const { return NewHiddenFields.size(); }
+    int NewVisibleAttributesCnt() const { return NewVisibleAttributes.size(); }
+    int NewHiddenAttributesCnt() const { return NewHiddenAttributes.size(); }
 
     int InheritedNotOverrideMethodsCnt() const { return InheritedMethods.size() - OverrideMethods.size(); }
     int InheritedOverrideMethodsCnt() const { return OverrideMethods.size(); }
     int NewMethodsCnt() const { return NewMethods.size(); }
 
-    int InheritedNotOverrideFieldsCnt() const { return InheritedFields.size() - OverrideFields.size(); }
-    int InheritedOverrideFieldsCnt() const { return OverrideFields.size(); }
-    int NewFieldsCnt() const { return NewFields.size(); }
+    int InheritedNotOverrideAttributesCnt() const { return InheritedAttributes.size() - OverrideAttributes.size(); }
+    int InheritedOverrideAttributesCnt() const { return OverrideAttributes.size(); }
+    int NewAttributesCnt() const { return NewAttributes.size(); }
 
     int DerivedCnt() const { 
         std::cout << Record_->getNameAsString() << std::endl;
@@ -102,7 +159,11 @@ private:
 
                 DerivedCount[BaseDecl]++;
 
-                for (clang::CXXMethodDecl* Meth : BaseDecl->methods()) {
+                std::vector<clang::CXXMethodDecl*> BaseMethods = {};
+                std::vector<Attribute> BaseAttributes = {};
+                FillAttributesAndMethods(BaseDecl, BaseMethods, BaseAttributes);
+
+                for (clang::CXXMethodDecl* Meth : BaseMethods) {
                     if (Meth->isImplicit())
                         continue;
                     if (Meth->getAccess() == clang::AccessSpecifier::AS_public 
@@ -110,11 +171,10 @@ private:
                         InheritedMethods.insert(Meth);
                 }
 
-                for (clang::FieldDecl* Field : BaseDecl->fields()) {
-                    if (Field->getAccess() == clang::AccessSpecifier::AS_public
-                        || Field->getAccess() == clang::AccessSpecifier::AS_protected)
-                        InheritedFields.insert(Field);
-                }
+                for (auto Attr : BaseAttributes)
+                    if (Attr.Access == clang::AccessSpecifier::AS_public
+                        || Attr.Access == clang::AccessSpecifier::AS_protected)
+                            InheritedAttributes.insert(Attr);
 
                 traverseBaseClasses(BaseDecl);
             }
@@ -127,13 +187,17 @@ public:
 
         traverseBaseClasses(Record);
 
+        std::cout << "Inherited Methods Count: " << InheritedMethods.size() << std::endl;
+        std::cout << "Inherited Attributes Count: " << InheritedAttributes.size() << std::endl;
+
+        // Found class refs
         for (clang::FieldDecl* Field : Record->fields()) {
-            std::cout << Field->getNameAsString();
+            std::cout << "FIELD: " << Field->getNameAsString();
             clang::QualType type = Field->getType();
 
-            // Проверяем, является ли это поле указателем на структуру
+            // Structure pointee
             if (type->isPointerType()) {
-                const clang::QualType pointeeType = type->getPointeeType(); // Достаем тип, на который указывает поле
+                const clang::QualType pointeeType = type->getPointeeType();
 
                 if (const clang::RecordType *RefRecord = pointeeType->getAs<clang::RecordType>()) {
                     std::cout << " IS POINTER TO RECORD" << std::endl;
@@ -152,23 +216,13 @@ public:
                 }
             }
 
-            std::cout << std::endl; // Завершаем строку вывода
+            std::cout << std::endl;
         }
 
+        // Methods & Attrs
+        FillAttributesAndMethods(Record, Methods, Attributes);
 
-        std::cout << "Inherited Methods Count: " << InheritedMethods.size() << std::endl;
-        std::cout << "Inherited Fields Count: " << InheritedFields.size() << std::endl;
-
-        for (clang::CXXMethodDecl* Meth : Record->methods()) {
-            if (Meth->isImplicit())
-                continue;
-            Methods.insert(Meth);
-        }
-
-        for (clang::FieldDecl* Field : Record->fields()) {
-            Fields.insert(Field);
-        }
-
+        // Overriden & New
         for (clang::CXXMethodDecl* Meth : Methods) {
             bool found = false;
             for (clang::CXXMethodDecl* InheritedMeth : InheritedMethods) {
@@ -182,21 +236,21 @@ public:
                 NewMethods.insert(Meth);
         }
 
-        for (clang::FieldDecl* Field : Fields) {
+        for (Attribute Attr : Attributes) {
             bool found = false;
-            for (clang::FieldDecl* InheritedField : InheritedFields) {
-                if (Field->getName() == InheritedField->getName()) {
-                    OverrideFields.insert(Field);
+            for (Attribute InheritedAttr : InheritedAttributes) {
+                if (Attr.Name == InheritedAttr.Name) {
+                    OverrideAttributes.insert(Attr);
                     found = true;
                     break;
                 }
             }
             if (!found)
-                NewFields.insert(Field);
+                NewAttributes.insert(Attr);
         }
 
         std::cout << "Override Methods Count: " << OverrideMethods.size() << std::endl;
-        std::cout << "Override Fields Count: " << OverrideFields.size() << std::endl;
+        std::cout << "Override Attributes Count: " << OverrideAttributes.size() << std::endl;
 
         for (clang::CXXMethodDecl* Meth : NewMethods) {
             if (Meth->getAccess() == clang::AccessSpecifier::AS_public)
@@ -208,15 +262,15 @@ public:
         std::cout << "New Visible Methods Count: " << NewVisibleMethods.size() << std::endl;
         std::cout << "New Hidden Methods Count: " << NewHiddenMethods.size() << std::endl;
 
-        for (clang::FieldDecl* Field : NewFields) {
-            if (Field->getAccess() == clang::AccessSpecifier::AS_public)
-                NewVisibleFields.insert(Field);
-            if (Field->getAccess() == clang::AccessSpecifier::AS_protected || Field->getAccess() == clang::AccessSpecifier::AS_private)
-                NewHiddenFields.insert(Field);
+        for (Attribute Attr : NewAttributes) {
+            if (Attr.Access == clang::AccessSpecifier::AS_public)
+                NewVisibleAttributes.insert(Attr);
+            if (Attr.Access == clang::AccessSpecifier::AS_protected || Attr.Access == clang::AccessSpecifier::AS_private)
+                NewHiddenAttributes.insert(Attr);
         }
 
-        std::cout << "New Visible Fields Count: " << NewVisibleFields.size() << std::endl;
-        std::cout << "New Hidden Fields Count: " << NewHiddenFields.size() << std::endl;
+        std::cout << "New Visible Attributes Count: " << NewVisibleAttributes.size() << std::endl;
+        std::cout << "New Hidden Attributes Count: " << NewHiddenAttributes.size() << std::endl;
 
         std::cout << std::endl;
     }

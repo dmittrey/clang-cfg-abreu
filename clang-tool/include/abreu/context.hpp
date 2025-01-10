@@ -25,10 +25,10 @@ private:
         double hidden = 0;
         double all = 0;
         for (auto* Class : Classes) {
-            hidden += Class->NewHiddenFieldsCnt();
+            hidden += Class->NewHiddenAttributesCnt();
 
-            all += Class->NewVisibleFieldsCnt();
-            all += Class->NewHiddenFieldsCnt();
+            all += Class->NewVisibleAttributesCnt();
+            all += Class->NewHiddenAttributesCnt();
         }
         return hidden / all;
     }
@@ -50,11 +50,11 @@ private:
         double NotOverriden = 0;
         double All = 0;
         for (auto* Class : Classes) {
-            NotOverriden += Class->InheritedNotOverrideFieldsCnt();
+            NotOverriden += Class->InheritedNotOverrideAttributesCnt();
 
-            All += Class->InheritedNotOverrideFieldsCnt();
-            All += Class->InheritedOverrideFieldsCnt();
-            All += Class->NewFieldsCnt();
+            All += Class->InheritedNotOverrideAttributesCnt();
+            All += Class->InheritedOverrideAttributesCnt();
+            All += Class->NewAttributesCnt();
         }
         return NotOverriden / All;
     }
