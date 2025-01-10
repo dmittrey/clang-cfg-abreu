@@ -1,37 +1,59 @@
 #include <iostream>
 
-struct Base {
-public:
-    void example_method () {
-        std::cout << "Hello_Base" << std::endl;
-    }
+struct Animal {
+protected:
+    bool isSmile_ = false;
 
 public:
-    virtual void example_method_virt () {}
-
-private:
-    void example_method_private () {}
-
-public:
-    void setAttr(int attr) {}
-    int getAttr() {}
+    // 2 New Methods
+    void say () {}
+    void method () {}
 
 public:
-    int example_field;
-
-private:
-    int example_field_private;
+    // 1 attribute Smile
+    void setSmile(bool isSmile) { isSmile_ = isSmile; }
+    bool getSmile() { return isSmile_; }
 };
 
-struct Derived : Base {
+struct Cat : Animal {
 private:
-    void example_method_private_v2 () {}
+    double beautyFactor_ = 0.0;
 
 public:
-    void example_method() {
-        
-    }
+    // Inherited overriden method
+    void say () { std::cout << "Meow" << std::endl; }
 
 public:
-    int example_field_v2;
-};  
+    // 1 inherited Attributes
+    // 1 new Attribute
+    void setBeautyFactor(int factor) { beautyFactor_ = factor; }
+    int getBeautyFactor() { return beautyFactor_; }
+
+private:
+    // 1 New Hidden Method
+    void PissInSlippers() { setSmile(true); }
+};
+
+struct Tiger : Animal {
+public:
+    // 1 overriden attribute
+    void setSmile(bool isSmile) { isSmile ? sayPretty() : sayAngry(); }
+    bool getSmile() { return isSmile_; }
+
+private:
+    // 1 New Hidden attribute
+    void setSick(bool isSick) {};
+    bool getSick() { return false; };
+
+private:
+    void sayAngry() {}
+    void sayPretty() {}
+};
+
+struct Human {
+public:
+    Cat* pet;
+
+private:
+    void PetTheKitty() { pet->setSmile(true); }
+};
